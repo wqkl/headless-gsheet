@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Headless Google Sheet Viewer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Data from Google Sheet</h1>
+  <table id="sheet-table">
+    <thead id="table-head"></thead>
+    <tbody id="table-body"></tbody>
+  </table>
+
+  <script>
+    // ── Replace this URL with your published-to-web CSV link ──
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/<SHEET_ID>/pub?gid=<GID>&single=true&output=csv';
+
+    async function fetchSheetAsCSV(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch CSV');
+      return await res.text();
+    }
+
+    function parseCSV(text) {
+      return text
+        .trim()
+        .split('\n')
+        .map(line => line.split(','));
+    }
+
+    function populateTable(rows) {
+      const thead = document.getElementById('table-head');
+      const tbody = document.getElementById('table-body');
+
+      // First row → headers
+      const headers = rows[0];
+      const headerRow = document.createElement('tr');
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+
+      // Remaining rows → data
+      rows.slice(1).forEach(row => {
+        const tr = document.createElement('tr');
+        row.forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    (async () => {
+      try {
+        const csvText = await fetchSheetAsCSV(CSV_URL);
+        const rows = parseCSV(csvText);
+        populateTable(rows);
+      } catch (err) {
+        console.error(err);
+        document.body.insertAdjacentHTML(
+          'beforeend',
+          '<p style="color:red;">Unable to load sheet data.</p>'
+        );
+      }
+    })();
+  </script>
+</body>
+</html>
